@@ -74,8 +74,8 @@
   		cmd와 다른점은 docker run으로 실행시 cmd는 파라미터 입력시 파리미터 값으로 변경되어 실행이 되나 entrypoint 해당 파라미터를 cmd로 받아서 처리하며 기존 entrypoint를 실행한다.
   ```
 
-
-- docker image build -t <이름> <도커파일 경로>
+- docker image build -t <이름> <도커파일 경로>\
+- docker images
 
 #### Docker Container
 
@@ -90,3 +90,84 @@
   - 이말은 만약 컨테이너로 db를 실행했다면 적절한 처리를 하지 않았다면 데이터들이 삭제된다.
   - 당연한것 같다
   - 이를 해결할 방법은 volume
+
+```
+docker container run <option> <이름>
+docker container stop <이름>
+docker container restart <이름>
+docker container rm <이름>
+docker container logs <이름>
+docker container exec <이름>
+docker container cp <이름>
+docker container prune <이름>
+
+```
+
+
+
+### Docker Compose
+
+- Compose는 yaml포맷인 설정파일로 여러 컨테이너의 실행을 한번에 관리 할 수 있다.
+- compose를 사용하기 위해서는 설치를 해야한다.
+- docker-compose up(실행)
+- docker-compose down
+
+```
+# 만들어진 이미지 실행
+version: "3" // compose version
+services:
+        echo:
+                image: example/hi
+                ports:
+                        - 9000:8080
+
+# 이미지 build 하고 이미지 실행
+services:
+        echo:
+                build: .
+                ports:
+                        - 9000:8080
+
+
+```
+
+- compose를 통해서 컨테이너간의 의존설정도 가능하다
+
+```
+version: "3.7"
+services:
+  web:
+    build: .
+    depends_on:
+      - db
+      - redis
+  redis:
+    image: redis
+  db:
+    image: postgres
+
+## 의존관계시 redis , db를 먼저 실행시키고 web을 실행시킨다
+## 정지는 반대로
+```
+
+- 위에서 설명했듯이 컨테이너의 데이터는 휘발성이 강하기 때문에 컨테이너가 중지되거나 삭제되면 해당 데이터들이 삭제된다. compose에서도 volume 설정이 가능하다.
+
+```
+version: "3"
+services:
+        echo:
+                build: .
+                volumes:
+                        - .:/go  // 컨테이너의 go 폴더를 현재 폴더로 마운트
+                ports:
+                        - 9000:8080
+
+```
+
+
+
+### 컨테이너 이식성
+
+- 도커는 호스트 운영체제와 커널 리서스를 공유한다. 즉 이말은 호스트가 특정 cpu , 운영체제에 종속된다.
+- 라이브러리의 동적 링크에 문제점과 같은 문제점을 가지고 있다.
+
