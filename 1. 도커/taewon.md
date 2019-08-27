@@ -82,6 +82,17 @@
     ```
     Docker Engine is the higher level component which manages a bunch of things such as orchestration, managing volumes, networking, scaling and so on
     ```
+- 출처 : https://www.youtube.com/watch?v=wW9CAH9nSLs&feature=youtu.be
+    ```
+    it's isloated at the process level
+    it has it and it has its own file system
+    ...
+    What docker does is a little demon 
+    You drop on the server 
+    Any server that has a little linux kernel that's modern enough and it runs processes for you
+    But it runs them in a way that they're super isolated like a describe    
+    ```
+
 - docker 엔진은 docker container 를 관리하기 위한 엔진
 
 ![conatiner](https://i.stack.imgur.com/5aXF6.png)
@@ -118,3 +129,4 @@
 - https://en.wikipedia.org/wiki/Open_Container_Initiative    
 - https://github.com/opencontainers/runc
 - https://stackoverflow.com/questions/34152365/difference-between-lxc-and-libcontainer
+- https://www.youtube.com/watch?v=wW9CAH9nSLs&feature=youtu.be
