@@ -3,7 +3,7 @@
 #### 쿠버네티스
 -   컨테이너 운영을 자동화하기 위한 컨테이너 오케스트레이션 도구
 -   컨테이너를 이용한 애플리케이션 배포 , 운영 , 도커 호스트 관리 , 서버 리소스를 고려한 컨테이너 배치,스케일링,로드밸런싱 , 헬스체크등
--   쿠버네티스로 실행하는 애플리케이션은 애플리케이션을 구성하는 다양한 리소스가 함계 연동해 동작
+-   쿠버네티스로 실행하는 애플리케이션은 애플리케이션을 구성하는 다양한 리소스가(오브젝트) 함께 연동해 동작
 
 ##### kubectl
 -   쿠버네티스를 운영하기 위한 cli 툴
@@ -33,12 +33,13 @@
 | 서비스 계정          | 파드가 쿠버네티스 리소스를 조작할 때 사용하는 계정           |
 
 #### 쿠버네티스 클러스터
--   쿠버네티스의 여러 리소스를 관리하기 위한 집합체
+-   쿠버네티스의 여러 리소스(object)를 관리하기 위한 집합체
 -   클러스터 전체를 관리하는 서버인 마스터 노드가 하나이상 존재해야한다.
 -   노드의 리소스 사용 현황 및 배치 전략을 근거로 컨테이너를 배치
     -   노드의수 , 노드의 사양등에 따라 배치할 수 있는 컨테이너 수가 결정 된다.
 #### 노드
 -   쿠버네티스 클러스터의 관리 대상으로 등록된 도커 호스트로 컨테이너가 배치되는 대상
+-   master node이외에는 worker node라고 칭한다.
 
 #### 기본적인 구조
 ![kube](./image/kube.jpg)
@@ -89,6 +90,7 @@
 -  pod는 하나의 노드에만 속해 있어야한다.
     -   여러 노드에 걸쳐 있을 수 없다.
 -   각각의 파드는 유일한 IP주소를 할당 받는다.
+    -   파드가 리스타트 될때마다 IP주소가 바뀐다.
 -   공유 저장소 집한인 Volumes를 명시 할 수 있다. 같은 파드안에 있는 컨테이너들은 공유 볼륨에 접근이 가능
     -   이말은 컨테이너끼리 데이터를 공유하는 것을 허용한다.
 - kubectl로도 만들수 있으나 버전관리를 위해 yaml 파일로 작성해라
@@ -110,8 +112,11 @@ spec: ## Objet 속성을 명시한다.
    
  
  ## 느낌은 compose랑 유사하다고 생각한다. 
+ ## labels 리소스(object)에 붙은 key/value의 식별자
+    label을 통해 특정 리소스만 서비스에 연결하거나 , 권한을 부여 할 수 있다.
+    라벨은 여러 key/value를 가질 수 있다.
 ```
--   파일을 생성했으면 
+-   파일을 생성했으면 등록
 ```
 kubectl apply -f <yaml파일 경로>
 ```
@@ -134,16 +139,15 @@ kubectl delete -f <yam파일>
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
-  name: frontend
-  labels:
+  name: frontend ## 레플리카 세트의 고유이름
+  labels: 
     app: guestbook
     tier: frontend
 spec:
-  # modify replicas according to your case
   replicas: 3
   selector:
     matchLabels:
-      tier: frontend
+      tier: frontend // label이 tier:fronted인 pod만 골라서 실행
   template:
     metadata:
       labels:
@@ -153,7 +157,7 @@ spec:
       - name: php-redis
         image: gcr.io/google_samples/gb-frontend:v3
 ```
--   파일을 생성했으면 
+-   파일을 생성했으면 등록
 ```
 kubectl apply -f <yaml파일 경로>
 ```
@@ -194,14 +198,61 @@ spec:
         ports:
         - containerPort: 80
 ```
--   파일을 생성했으면 
+-   파일을 생성했으면 등록
 ```
 kubectl apply -f <yaml파일 경로>
 ```
 -   실제 운영에서는 replicaSet 보다는 deployment더 많이 사용한다.
 -   디플로이먼트를 수정하면 레플리카 세트가 새로 생성되고 기존 레플리카와 교체 된다.
     -   리비전이 올라간다(elasticsearch version올라가는거와 유사)
-    -   레플리카 값만 변경했을때는 레플리카 세트가 일어나지 않는다.
+    -   레플리카 값만 변경했을때는 레플리카 세트교체가 일어나지 않는다.
     -   컨테이너의 직접적인 변경이 있을때 교체
 -   리비전을 기록하는 이유는 이전 리비전으로 롤백할 수 있다.
 -   디플로이먼트를 삭제할 수 있는데 연관된 replicaSet , pod또한 같이 삭제된다.
+
+#
+### Service
+-   클러스터 안에서 파드의 경로나 서비스 디스커버리를 제공하는 서비스
+-   pod는 기본적으로 재시작되면 ip가 바뀌기에 고정된 파드로 호출이 어렵다. 그렇기에 서비스는 pod는 고정된 ip를 생성할수
+     있도록 지원하며,여러 pod를 묶어 로드 밸런싱을 지원한다. 또한 label-selector을 통해서 원하는 pod에만 요청을 할 수 있도록
+     할 수 도 있다.
+#### 디스커버리
+-   API주소가 동적으로 바뀌는 경우에도 클라이언트가 접속 대상을 바꾸지 않고 하나의 이름으로 접근할 수 있는 기능
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+      
+## 해당 방식으로 파일을 정의
+```
+-   파일을 생성했으면 등록
+```
+kubectl apply -f <yaml파일 경로>
+```
+
+#### Service Type
+##### clusterIP
+-   서비스에 클러스터 IP를 할당
+-   클러스터 외부에서 접근 이 불가능
+##### NodePort
+-   클러스터 외부에서 접근할수 있는 서비스
+-   cluster ip와 동일하나 
+-   각 노드에 해당 IP로 접근이 가능하다
+##### 로드밸런서
+##### ExternalName
+
+#
+### 인그레스
+-   쿠버네티스에서 기본적으로 외부로 서비스를 공개하려면 NodePort로 노출
+    -   해당 방식은 L4레벨 까지만 다루기에 L7벨의 제어는 불가능하다.
+-   HTTP/HTTPS 제공하여 외부에 클러스터 내의 서비스를 제공
+-   쿠버네티스에서 HTTP(S)기반의 L7 로드밸런싱 기능을 제공
+
